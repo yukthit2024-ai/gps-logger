@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.gpslocationlogger"
-        minSdk 26          // Android 8.0 Oreo — java.time APIs available natively
+        minSdk 29          // Android 10.0 (Q) — MediaStore.Files used for storage
         targetSdk 34
         versionCode 1
         versionName "1.0"

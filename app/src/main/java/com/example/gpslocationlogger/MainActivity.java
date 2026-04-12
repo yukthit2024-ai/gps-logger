@@ -1,19 +1,23 @@
 package com.example.gpslocationlogger;
 
 import android.Manifest;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -33,6 +37,8 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,8 +47,11 @@ import java.util.List;
  * MainActivity — GPS Location Logger
  *
  * Tracks GPS location using FusedLocationProviderClient, stores updates
- * in-memory as a JSON array, and saves to external app-specific storage
- * when the user taps "End Tracking".
+ * in-memory as a JSON array, and saves to:
+ *   /sdcard/GPSLocationLogger/  (root of internal storage, via MediaStore.Files)
+ *
+ * No special permission needed on Android 10+ (API 29+).
+ * Visible in every file manager and via USB/MTP without root.
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -50,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
     private static final long LOCATION_INTERVAL_MS = 5000;   // 5 seconds
     private static final long LOCATION_FASTEST_INTERVAL_MS = 5000;
+
+    /** Folder created at the root of internal storage: /sdcard/GPSLocationLogger/ */
+    private static final String GPS_FOLDER = "GPSLocationLogger";
 
     // ── UI ──────────────────────────────────────────────────────────────────
     private Button btnStartTracking;
@@ -162,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * System callback for runtime permission results.
+     * System callback for runtime permission results (location only).
      */
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -177,11 +189,9 @@ public class MainActivity extends AppCompatActivity {
                 startTracking();
             } else {
                 Log.w(TAG, "Location permission denied.");
-                // Check if "Don't ask again" was selected
                 boolean showRationale = ActivityCompat.shouldShowRequestPermissionRationale(
                         this, Manifest.permission.ACCESS_FINE_LOCATION);
                 if (!showRationale) {
-                    // User ticked "Don't ask again" — redirect to app settings
                     new AlertDialog.Builder(this)
                             .setTitle("Permission Denied Permanently")
                             .setMessage("Location permission was permanently denied. Please enable it from App Settings to use this feature.")
@@ -261,9 +271,12 @@ public class MainActivity extends AppCompatActivity {
     // ── File I/O ─────────────────────────────────────────────────────────────
 
     /**
-     * Serialises all collected location records into a JSON array and writes
-     * the result to app-specific external storage.
-     * File name: location_logs_<ISO-timestamp>.json
+     * Serialises all collected records to a JSON file at:
+     *   /sdcard/GPSLocationLogger/location_logs_<timestamp>.json
+     *
+     * Uses MediaStore.Files so the folder appears at the ROOT of internal
+     * storage (not inside Downloads/DCIM/etc.) and is immediately visible
+     * in every file manager and via USB/MTP — no root or special permission needed.
      */
     private void saveLocationDataToFile() {
         if (locationRecords.isEmpty()) {
@@ -278,34 +291,53 @@ public class MainActivity extends AppCompatActivity {
             jsonArray.put(record);
         }
 
-        // Format a file-system-safe timestamp  (colons replaced with hyphens)
+        // File-system-safe timestamp, e.g. "2026-04-12T08-30-00.123Z"
         String fileTimestamp = Instant.now().toString().replace(":", "-");
         String fileName = "location_logs_" + fileTimestamp + ".json";
 
-        // App-specific external storage (no special permission needed, scoped storage compliant)
-        File storageDir = getExternalFilesDir(null);
-        if (storageDir == null) {
-            Log.e(TAG, "External storage is unavailable.");
-            Toast.makeText(this, "External storage unavailable.", Toast.LENGTH_LONG).show();
+        // Delegate to MediaStore — Android 10+ only (minSdk = 29)
+        saveViaMediaStore(jsonArray, fileName);
+    }
+
+    /**
+     * Writes the JSON file to /sdcard/GPSLocationLogger/ via MediaStore.Files.
+     *
+     * MediaStore.Files with RELATIVE_PATH = "GPSLocationLogger/" places the
+     * file at the ROOT of external storage — not inside Downloads or DCIM.
+     * No permission is required on Android 10+ (API 29+).
+     */
+    private void saveViaMediaStore(JSONArray jsonArray, String fileName) {
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Files.FileColumns.DISPLAY_NAME, fileName);
+        values.put(MediaStore.Files.FileColumns.MIME_TYPE, "application/json");
+        // RELATIVE_PATH is relative to the root of external storage.
+        // "GPSLocationLogger/" creates /sdcard/GPSLocationLogger/
+        values.put(MediaStore.Files.FileColumns.RELATIVE_PATH, GPS_FOLDER + File.separator);
+
+        Uri collectionUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        Uri fileUri = getContentResolver().insert(collectionUri, values);
+
+        if (fileUri == null) {
+            Log.e(TAG, "MediaStore insert returned null URI.");
+            Toast.makeText(this, "Could not create file. Check storage availability.", Toast.LENGTH_LONG).show();
             return;
         }
 
-        File outputFile = new File(storageDir, fileName);
+        try (OutputStream os = getContentResolver().openOutputStream(fileUri);
+             OutputStreamWriter writer = new OutputStreamWriter(os)) {
 
-        // Write JSON to file (try-with-resources ensures flush + close)
-        try (FileWriter writer = new FileWriter(outputFile)) {
             writer.write(jsonArray.toString(2)); // pretty-print with 2-space indent
             writer.flush();
-            Log.i(TAG, "Location data saved to: " + outputFile.getAbsolutePath());
+
+            String displayPath = "/sdcard/" + GPS_FOLDER + "/" + fileName;
+            Log.i(TAG, "Saved → " + displayPath);
             Toast.makeText(this,
-                    "Saved " + locationRecords.size() + " record(s) to:\n" + outputFile.getAbsolutePath(),
+                    "✅ Saved " + locationRecords.size() + " record(s) to:\n" + displayPath,
                     Toast.LENGTH_LONG).show();
-        } catch (IOException e) {
-            Log.e(TAG, "IOException while saving location data", e);
+
+        } catch (IOException | JSONException e) {
+            Log.e(TAG, "Error writing via MediaStore", e);
             Toast.makeText(this, "Error saving file: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        } catch (JSONException e) {
-            Log.e(TAG, "JSONException while formatting data", e);
-            Toast.makeText(this, "Error formatting JSON: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
