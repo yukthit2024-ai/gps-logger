@@ -48,10 +48,9 @@ import java.util.List;
  *
  * Tracks GPS location using FusedLocationProviderClient, stores updates
  * in-memory as a JSON array, and saves to:
- *   /sdcard/GPSLocationLogger/  (root of internal storage, via MediaStore.Files)
+ *   Downloads/GPSLocationLogger/  (Android 10+, via MediaStore.Downloads)
  *
- * No special permission needed on Android 10+ (API 29+).
- * Visible in every file manager and via USB/MTP without root.
+ * No special permission needed. Visible in all file managers and USB/MTP.
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -60,7 +59,16 @@ public class MainActivity extends AppCompatActivity {
     private static final long LOCATION_INTERVAL_MS = 5000;   // 5 seconds
     private static final long LOCATION_FASTEST_INTERVAL_MS = 5000;
 
-    /** Folder created at the root of internal storage: /sdcard/GPSLocationLogger/ */
+    /**
+     * Subfolder name inside Downloads.
+     * Final path: /sdcard/Download/GPSLocationLogger/
+     * Visible in all file managers and via USB/MTP — no root required.
+     *
+     * NOTE: Android scoped storage (API 29+) prevents creating arbitrary
+     * folders at /sdcard/ root without MANAGE_EXTERNAL_STORAGE. The safe,
+     * reliable option is a subfolder inside a well-known public directory
+     * such as Downloads, which MediaStore.Downloads handles natively.
+     */
     private static final String GPS_FOLDER = "GPSLocationLogger";
 
     // ── UI ──────────────────────────────────────────────────────────────────
@@ -300,28 +308,41 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Writes the JSON file to /sdcard/GPSLocationLogger/ via MediaStore.Files.
+     * Writes the JSON file to Downloads/GPSLocationLogger/ via MediaStore.Downloads.
      *
-     * MediaStore.Files with RELATIVE_PATH = "GPSLocationLogger/" places the
-     * file at the ROOT of external storage — not inside Downloads or DCIM.
-     * No permission is required on Android 10+ (API 29+).
+     * WHY NOT /sdcard/GPSLocationLogger/ (root) ?
+     * Android scoped storage (enforced from API 29) blocks apps from creating
+     * folders at the external storage root without MANAGE_EXTERNAL_STORAGE —
+     * a highly restricted permission that causes Play Store rejection.
+     * MediaStore.Downloads with a subfolder is the correct, unrestricted API.
+     *
+     * Resulting path: /sdcard/Download/GPSLocationLogger/<filename>.json
+     * Accessible via: any file manager → Downloads → GPSLocationLogger
+     *                 Windows File Explorer over USB (MTP)
+     *                 adb pull /sdcard/Download/GPSLocationLogger/
      */
     private void saveViaMediaStore(JSONArray jsonArray, String fileName) {
         ContentValues values = new ContentValues();
-        values.put(MediaStore.Files.FileColumns.DISPLAY_NAME, fileName);
-        values.put(MediaStore.Files.FileColumns.MIME_TYPE, "application/json");
-        // RELATIVE_PATH is relative to the root of external storage.
-        // "GPSLocationLogger/" creates /sdcard/GPSLocationLogger/
-        values.put(MediaStore.Files.FileColumns.RELATIVE_PATH, GPS_FOLDER + File.separator);
+        values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+        values.put(MediaStore.Downloads.MIME_TYPE,    "application/json");
+        // RELATIVE_PATH for Downloads collection is relative to /sdcard/
+        // "Download/GPSLocationLogger/" → /sdcard/Download/GPSLocationLogger/
+        values.put(MediaStore.Downloads.RELATIVE_PATH,
+                Environment.DIRECTORY_DOWNLOADS + File.separator + GPS_FOLDER);
 
-        Uri collectionUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        Uri collectionUri = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+        Log.d(TAG, "Inserting into MediaStore: " + collectionUri);
         Uri fileUri = getContentResolver().insert(collectionUri, values);
 
         if (fileUri == null) {
-            Log.e(TAG, "MediaStore insert returned null URI.");
-            Toast.makeText(this, "Could not create file. Check storage availability.", Toast.LENGTH_LONG).show();
+            Log.e(TAG, "MediaStore.Downloads.insert() returned null — storage may be unavailable.");
+            Toast.makeText(this,
+                    "Could not create file in Downloads. Check storage availability.",
+                    Toast.LENGTH_LONG).show();
             return;
         }
+
+        Log.d(TAG, "MediaStore URI created: " + fileUri);
 
         try (OutputStream os = getContentResolver().openOutputStream(fileUri);
              OutputStreamWriter writer = new OutputStreamWriter(os)) {
@@ -329,7 +350,7 @@ public class MainActivity extends AppCompatActivity {
             writer.write(jsonArray.toString(2)); // pretty-print with 2-space indent
             writer.flush();
 
-            String displayPath = "/sdcard/" + GPS_FOLDER + "/" + fileName;
+            String displayPath = "Downloads/" + GPS_FOLDER + "/" + fileName;
             Log.i(TAG, "Saved → " + displayPath);
             Toast.makeText(this,
                     "✅ Saved " + locationRecords.size() + " record(s) to:\n" + displayPath,

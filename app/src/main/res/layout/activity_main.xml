@@ -132,49 +132,59 @@
     </androidx.cardview.widget.CardView>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- ④ ⑤  Buttons — sized to their text, centred as a horizontal pair      -->
+    <!-- ④ Start Tracking — top button                                         -->
     <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <LinearLayout
-        android:id="@+id/layoutButtons"
-        android:layout_width="wrap_content"
+    <Button
+        android:id="@+id/btnStartTracking"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:text="Start Tracking"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:paddingVertical="14dp"
+        android:enabled="true"
+        android:backgroundTint="#0F3460"
+        android:layout_marginHorizontal="24dp"
         android:layout_marginTop="32dp"
-        android:gravity="center"
         app:layout_constraintTop_toBottomOf="@id/cardCoordinates"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- ⑤ End Tracking — bottom button                                        -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <Button
+        android:id="@+id/btnEndTracking"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="End Tracking"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:paddingVertical="14dp"
+        android:enabled="false"
+        android:backgroundTint="#E94560"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/btnStartTracking"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- ⑥ Save-path info label — always visible at the bottom                 -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <TextView
+        android:id="@+id/tvSavePath"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="📁  Files saved to:  Download/GPSLocationLogger/"
+        android:textSize="12sp"
+        android:textColor="#888EAB"
+        android:gravity="center"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="12dp"
+        android:layout_marginBottom="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintVertical_bias="0.4">
-
-        <!-- Start Tracking — enabled on launch -->
-        <Button
-            android:id="@+id/btnStartTracking"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Start Tracking"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:paddingHorizontal="28dp"
-            android:paddingVertical="14dp"
-            android:enabled="true"
-            android:backgroundTint="#0F3460"
-            android:layout_marginEnd="10dp" />
-
-        <!-- End Tracking — disabled on launch -->
-        <Button
-            android:id="@+id/btnEndTracking"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="End Tracking"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:paddingHorizontal="28dp"
-            android:paddingVertical="14dp"
-            android:enabled="false"
-            android:backgroundTint="#E94560"
-            android:layout_marginStart="10dp" />
-
-    </LinearLayout>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
