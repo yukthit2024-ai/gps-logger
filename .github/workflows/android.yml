@@ -30,6 +30,10 @@ jobs:
           dos2unix gradlew
           chmod +x ./gradlew
 
+      # ── Timestamp (set once, reused in artifact name & summary) ─────────────
+      - name: Generate build timestamp
+        run: echo "BUILD_TIMESTAMP=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
+
       # ── Build ───────────────────────────────────────────────────────────────
       - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
@@ -47,7 +51,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: GPS-Location-Logger-debug
+          name: GPS-Location-Logger-${{ env.BUILD_TIMESTAMP }}
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error    # fail loudly if APK is missing
 
@@ -60,7 +64,7 @@ jobs:
           echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| APK | \`app/build/outputs/apk/debug/app-debug.apk\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Artifact | **GPS-Location-Logger-debug** (download from the Summary tab above) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Artifact | **GPS-Location-Logger-$BUILD_TIMESTAMP** (download from the Summary tab above) |" >> $GITHUB_STEP_SUMMARY
 
       # ── Upload build reports on failure (for easier debugging) ──────────────
       - name: Upload build reports on failure
