@@ -3,6 +3,7 @@ package com.example.gpslocationlogger;
 import android.Manifest;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.Uri;
@@ -12,6 +13,8 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -57,8 +60,6 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "GPSLocationLogger";
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
-    private static final long LOCATION_INTERVAL_MS = 5000;   // 5 seconds
-    private static final long LOCATION_FASTEST_INTERVAL_MS = 5000;
 
     /**
      * Subfolder name inside Downloads.
@@ -103,12 +104,9 @@ public class MainActivity extends AppCompatActivity {
         tvCoordinates    = findViewById(R.id.tvCoordinates);
 
         // Initialise FusedLocationProviderClient
+        // LocationRequest is NOT built here — it is rebuilt in startTracking()
+        // each time so it always picks up the latest SharedPreferences value.
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-
-        // Build LocationRequest (modern API, API 31+; falls back gracefully)
-        locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, LOCATION_INTERVAL_MS)
-                .setMinUpdateIntervalMillis(LOCATION_FASTEST_INTERVAL_MS)
-                .build();
 
         // Define callback that fires on each location fix
         locationCallback = new LocationCallback() {
@@ -128,6 +126,21 @@ public class MainActivity extends AppCompatActivity {
 
         // Initial UI state
         setTrackingUiState(false);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     // ── Button Handlers ──────────────────────────────────────────────────────
@@ -229,6 +242,17 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        // Read interval from settings
+        SharedPreferences prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE);
+        long intervalMs = prefs.getLong(SettingsActivity.KEY_INTERVAL_MS, SettingsActivity.DEFAULT_INTERVAL_MS);
+
+        // Build LocationRequest dynamically
+        locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs)
+                .setMinUpdateIntervalMillis(intervalMs) // matched for simplicity
+                .build();
+
+        Log.d(TAG, "Starting tracking with interval: " + intervalMs + "ms");
+
         // Clear any previous session data
         locationRecords.clear();
 
@@ -237,7 +261,7 @@ public class MainActivity extends AppCompatActivity {
         isTracking = true;
         setTrackingUiState(true);
         Log.d(TAG, "Location tracking started.");
-        Toast.makeText(this, "Tracking started.", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Tracking started (" + (intervalMs/1000) + "s interval).", Toast.LENGTH_SHORT).show();
     }
 
     /** Stops location updates. */

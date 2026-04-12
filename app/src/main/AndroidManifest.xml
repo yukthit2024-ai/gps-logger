@@ -40,6 +40,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="Options"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".MainActivity" />
+
     </application>
 
 </manifest>
