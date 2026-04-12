@@ -16,6 +16,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.provider.MediaStore;
+import android.Manifest;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
@@ -168,15 +169,23 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    // ── Button Handlers ────────────────────────────────────────────────────    
+    // ── Button Handlers ────────────────────────────────────────────────────
+    private void onStartTrackingClicked() {
+        checkAndRequestPermission();
+    }
+
+    private void onEndTrackingClicked() {
+        stopTracking();
+    }
+
     /** Checks whether required permissions are granted, requests them if not. */
     private void checkAndRequestPermission() {
         List<String> permissionsNeeded = new ArrayList<>();
-        permissionsNeeded.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
+        permissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
 
         // Android 13+ requires explicit notification permission for Foreground Services
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissionsNeeded.add(android.Manifest.permission.POST_NOTIFICATIONS);
+            permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
         }
 
         List<String> listPermissionsNeeded = new ArrayList<>();
@@ -192,20 +201,6 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(
                     this,
                     listPermissionsNeeded.toArray(new String[0]),
-                    LOCATION_PERMISSION_REQUEST_CODE);
-        }
-    }                    ActivityCompat.requestPermissions(
-                                    this,
-                                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                                    LOCATION_PERMISSION_REQUEST_CODE))
-                    .setNegativeButton("Cancel", (dialog, which) ->
-                            Toast.makeText(this, "Location permission denied.", Toast.LENGTH_SHORT).show())
-                    .show();
-        } else {
-            // Request directly (first time, or "don't ask again")
-            ActivityCompat.requestPermissions(
-                    this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST_CODE);
         }
     }
