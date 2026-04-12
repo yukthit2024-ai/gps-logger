@@ -30,11 +30,11 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
-    applicationVariants.all { variant ->
-        variant.outputs.all {
-            outputFileName = "gps-logger-${variant.name}-${new Date().format('yyyyMMdd-HHmmss')}.apk"
-        }
-    }	
+//    applicationVariants.all { variant ->
+//        variant.outputs.all {
+//            outputFileName = "gps-logger-${variant.name}-${new Date().format('yyyyMMdd-HHmmss')}.apk"
+//        }
+//    }	
 }
 
 dependencies {
