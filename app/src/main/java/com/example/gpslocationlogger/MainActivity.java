@@ -168,7 +168,8 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    // ── Button Handlers ────────────────────────────────────────────────────�    /** Checks whether required permissions are granted, requests them if not. */
+    // ── Button Handlers ────────────────────────────────────────────────────    
+    /** Checks whether required permissions are granted, requests them if not. */
     private void checkAndRequestPermission() {
         List<String> permissionsNeeded = new ArrayList<>();
         permissionsNeeded.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
