@@ -304,12 +304,10 @@ public class MainActivity extends AppCompatActivity {
     // ── File I/O ─────────────────────────────────────────────────────────────
 
     /**
-     * Serialises all collected records to a JSON file at:
-     *   /sdcard/GPSLocationLogger/location_logs_<timestamp>.json
-     *
-     * Uses MediaStore.Files so the folder appears at the ROOT of internal
-     * storage (not inside Downloads/DCIM/etc.) and is immediately visible
-     * in every file manager and via USB/MTP — no root or special permission needed.
+     * Serialises all collected records and saves them in three formats:
+     * JSON, GPX 1.1, and KML 2.2.
+     * All files share the same base timestamp and are saved to:
+     *   /sdcard/Download/GPSLocationLogger/
      */
     private void saveLocationDataToFile() {
         if (locationRecords.isEmpty()) {
@@ -318,76 +316,121 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // Build JSON array
-        JSONArray jsonArray = new JSONArray();
-        for (JSONObject record : locationRecords) {
-            jsonArray.put(record);
-        }
-
-        // Timezone-aware timestamp for file name — colons and '+' replaced so it is
-        // filesystem-safe, e.g. "2026-04-12T20-00-00.123+05-30" → safe on all OSes
+        // 1. Prepare common timestamp for filenames
         String fileTimestamp = ZonedDateTime.now()
                 .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-                .replace(":", "-");   // covers both time separators and timezone colon
-        String fileName = "location_logs_" + fileTimestamp + ".json";
+                .replace(":", "-");
+        String baseName = "location_logs_" + fileTimestamp;
 
-        // Delegate to MediaStore — Android 10+ only (minSdk = 29)
-        saveViaMediaStore(jsonArray, fileName);
+        // 2. Generate and save JSON
+        try {
+            JSONArray jsonArray = new JSONArray();
+            for (JSONObject record : locationRecords) {
+                jsonArray.put(record);
+            }
+            saveViaMediaStore(jsonArray.toString(2), baseName + ".json", "application/json");
+        } catch (JSONException e) {
+            Log.e(TAG, "Error formatting JSON", e);
+        }
+
+        // 3. Generate and save GPX
+        String gpxContent = generateGpx(locationRecords);
+        saveViaMediaStore(gpxContent, baseName + ".gpx", "application/gpx+xml");
+
+        // 4. Generate and save KML
+        String kmlContent = generateKml(locationRecords);
+        saveViaMediaStore(kmlContent, baseName + ".kml", "application/vnd.google-earth.kml+xml");
     }
 
     /**
-     * Writes the JSON file to Downloads/GPSLocationLogger/ via MediaStore.Downloads.
-     *
-     * WHY NOT /sdcard/GPSLocationLogger/ (root) ?
-     * Android scoped storage (enforced from API 29) blocks apps from creating
-     * folders at the external storage root without MANAGE_EXTERNAL_STORAGE —
-     * a highly restricted permission that causes Play Store rejection.
-     * MediaStore.Downloads with a subfolder is the correct, unrestricted API.
-     *
-     * Resulting path: /sdcard/Download/GPSLocationLogger/<filename>.json
-     * Accessible via: any file manager → Downloads → GPSLocationLogger
-     *                 Windows File Explorer over USB (MTP)
-     *                 adb pull /sdcard/Download/GPSLocationLogger/
+     * Writes string content to a file in Downloads/GPSLocationLogger/ via MediaStore.
      */
-    private void saveViaMediaStore(JSONArray jsonArray, String fileName) {
+    private void saveViaMediaStore(String content, String fileName, String mimeType) {
         ContentValues values = new ContentValues();
         values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
-        values.put(MediaStore.Downloads.MIME_TYPE,    "application/json");
-        // RELATIVE_PATH for Downloads collection is relative to /sdcard/
-        // "Download/GPSLocationLogger/" → /sdcard/Download/GPSLocationLogger/
+        values.put(MediaStore.Downloads.MIME_TYPE,    mimeType);
         values.put(MediaStore.Downloads.RELATIVE_PATH,
                 Environment.DIRECTORY_DOWNLOADS + File.separator + GPS_FOLDER);
 
         Uri collectionUri = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
-        Log.d(TAG, "Inserting into MediaStore: " + collectionUri);
         Uri fileUri = getContentResolver().insert(collectionUri, values);
 
         if (fileUri == null) {
-            Log.e(TAG, "MediaStore.Downloads.insert() returned null — storage may be unavailable.");
-            Toast.makeText(this,
-                    "Could not create file in Downloads. Check storage availability.",
-                    Toast.LENGTH_LONG).show();
+            Log.e(TAG, "MediaStore insert failed for " + fileName);
             return;
         }
-
-        Log.d(TAG, "MediaStore URI created: " + fileUri);
 
         try (OutputStream os = getContentResolver().openOutputStream(fileUri);
              OutputStreamWriter writer = new OutputStreamWriter(os)) {
 
-            writer.write(jsonArray.toString(2)); // pretty-print with 2-space indent
+            writer.write(content);
             writer.flush();
+            Log.i(TAG, "Saved → " + fileName);
 
-            String displayPath = "Downloads/" + GPS_FOLDER + "/" + fileName;
-            Log.i(TAG, "Saved → " + displayPath);
-            Toast.makeText(this,
-                    "✅ Saved " + locationRecords.size() + " record(s) to:\n" + displayPath,
-                    Toast.LENGTH_LONG).show();
-
-        } catch (IOException | JSONException e) {
-            Log.e(TAG, "Error writing via MediaStore", e);
-            Toast.makeText(this, "Error saving file: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Log.e(TAG, "Error writing " + fileName, e);
         }
+    }
+
+    /** Builds a GPX 1.1 XML string from the location records. */
+    private String generateGpx(List<JSONObject> records) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<gpx version=\"1.1\" creator=\"GPSLocationLogger\" ")
+          .append("xmlns=\"http://www.topografix.com/GPX/1/1\">\n");
+        sb.append("  <trk>\n");
+        sb.append("    <name>GPS Location Log</name>\n");
+        sb.append("    <trkseg>\n");
+
+        for (JSONObject record : records) {
+            try {
+                double lat = record.getDouble("latitude");
+                double lon = record.getDouble("longitude");
+                String time = record.getString("timestamp");
+                sb.append(String.format("      <trkpt lat=\"%.6f\" lon=\"%.6f\">\n", lat, lon));
+                sb.append("        <time>").append(time).append("</time>\n");
+                sb.append("      </trkpt>\n");
+            } catch (JSONException e) {
+                Log.e(TAG, "GPX row skip", e);
+            }
+        }
+
+        sb.append("    </trkseg>\n");
+        sb.append("  </trk>\n");
+        sb.append("</gpx>");
+        return sb.toString();
+    }
+
+    /** Builds a KML 2.2 XML string from the location records. */
+    private String generateKml(List<JSONObject> records) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n");
+        sb.append("  <Document>\n");
+        sb.append("    <name>GPS Location Log</name>\n");
+        sb.append("    <Placemark>\n");
+        sb.append("      <name>Track Path</name>\n");
+        sb.append("      <LineString>\n");
+        sb.append("        <tessellate>1</tessellate>\n");
+        sb.append("        <coordinates>\n");
+
+        for (JSONObject record : records) {
+            try {
+                double lat = record.getDouble("latitude");
+                double lon = record.getDouble("longitude");
+                // KML coordinates are lon,lat,alt
+                sb.append(String.format("          %.6f,%.6f,0\n", lon, lat));
+            } catch (JSONException e) {
+                Log.e(TAG, "KML row skip", e);
+            }
+        }
+
+        sb.append("        </coordinates>\n");
+        sb.append("      </LineString>\n");
+        sb.append("    </Placemark>\n");
+        sb.append("  </Document>\n");
+        sb.append("</kml>");
+        return sb.toString();
     }
 
     // ── UI State Helpers ─────────────────────────────────────────────────────
