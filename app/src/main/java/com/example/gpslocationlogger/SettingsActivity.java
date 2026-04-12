@@ -2,8 +2,10 @@ package com.example.gpslocationlogger;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.widget.CheckBox;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -21,11 +23,17 @@ public class SettingsActivity extends AppCompatActivity {
     /** Key for the logging interval in milliseconds. */
     public static final String KEY_INTERVAL_MS = "logging_interval_ms";
 
+    /** Keys for format selection. */
+    public static final String KEY_SAVE_JSON = "save_json";
+    public static final String KEY_SAVE_GPX  = "save_gpx";
+    public static final String KEY_SAVE_KML  = "save_kml";
+
     /** Default interval: 5 seconds. */
     public static final long DEFAULT_INTERVAL_MS = 5_000L;
 
     private RadioGroup rgFrequency;
     private TextView   tvIntervalPreview;
+    private CheckBox   cbJson, cbGpx, cbKml;
     private SharedPreferences prefs;
 
     // Maps each RadioButton ID to its interval in milliseconds
@@ -66,20 +74,45 @@ public class SettingsActivity extends AppCompatActivity {
 
         rgFrequency      = findViewById(R.id.rgFrequency);
         tvIntervalPreview = findViewById(R.id.tvIntervalPreview);
+        cbJson           = findViewById(R.id.cbJson);
+        cbGpx            = findViewById(R.id.cbGpx);
+        cbKml            = findViewById(R.id.cbKml);
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
-        // Restore saved preference and pre-select the matching radio button
+        // ── 1. Logging Frequency ──
         long savedInterval = prefs.getLong(KEY_INTERVAL_MS, DEFAULT_INTERVAL_MS);
         selectRadioForInterval(savedInterval);
         updatePreview(savedInterval);
 
-        // Save immediately when user changes selection
         rgFrequency.setOnCheckedChangeListener((group, checkedId) -> {
             long interval = intervalForRadioId(checkedId);
             prefs.edit().putLong(KEY_INTERVAL_MS, interval).apply();
             updatePreview(interval);
         });
+
+        // ── 2. Format Selection ──
+        cbJson.setChecked(prefs.getBoolean(KEY_SAVE_JSON, true));
+        cbGpx.setChecked(prefs.getBoolean(KEY_SAVE_GPX, true));
+        cbKml.setChecked(prefs.getBoolean(KEY_SAVE_KML, true));
+
+        cbJson.setOnCheckedChangeListener((v, checked) -> handleFormatChange(KEY_SAVE_JSON, checked, cbJson));
+        cbGpx.setOnCheckedChangeListener((v, checked) -> handleFormatChange(KEY_SAVE_GPX, checked, cbGpx));
+        cbKml.setOnCheckedChangeListener((v, checked) -> handleFormatChange(KEY_SAVE_KML, checked, cbKml));
+    }
+
+    /**
+     * Saves the format preference.
+     * Prevents unchecking if it's the last one selected.
+     */
+    private void handleFormatChange(String key, boolean isChecked, CheckBox checkBox) {
+        if (!isChecked && !cbJson.isChecked() && !cbGpx.isChecked() && !cbKml.isChecked()) {
+            // Revert: can't uncheck the last one
+            checkBox.setChecked(true);
+            Toast.makeText(this, "At least one format must be selected.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        prefs.edit().putBoolean(key, isChecked).apply();
     }
 
     /** Selects the radio button that matches the stored interval. */

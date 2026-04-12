@@ -322,24 +322,36 @@ public class MainActivity extends AppCompatActivity {
                 .replace(":", "-");
         String baseName = "location_logs_" + fileTimestamp;
 
+        // Read format preferences
+        SharedPreferences prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE);
+        boolean saveJson = prefs.getBoolean(SettingsActivity.KEY_SAVE_JSON, true);
+        boolean saveGpx  = prefs.getBoolean(SettingsActivity.KEY_SAVE_GPX, true);
+        boolean saveKml  = prefs.getBoolean(SettingsActivity.KEY_SAVE_KML, true);
+
         // 2. Generate and save JSON
-        try {
-            JSONArray jsonArray = new JSONArray();
-            for (JSONObject record : locationRecords) {
-                jsonArray.put(record);
+        if (saveJson) {
+            try {
+                JSONArray jsonArray = new JSONArray();
+                for (JSONObject record : locationRecords) {
+                    jsonArray.put(record);
+                }
+                saveViaMediaStore(jsonArray.toString(2), baseName + ".json", "application/json");
+            } catch (JSONException e) {
+                Log.e(TAG, "Error formatting JSON", e);
             }
-            saveViaMediaStore(jsonArray.toString(2), baseName + ".json", "application/json");
-        } catch (JSONException e) {
-            Log.e(TAG, "Error formatting JSON", e);
         }
 
         // 3. Generate and save GPX
-        String gpxContent = generateGpx(locationRecords);
-        saveViaMediaStore(gpxContent, baseName + ".gpx", "application/gpx+xml");
+        if (saveGpx) {
+            String gpxContent = generateGpx(locationRecords);
+            saveViaMediaStore(gpxContent, baseName + ".gpx", "application/gpx+xml");
+        }
 
         // 4. Generate and save KML
-        String kmlContent = generateKml(locationRecords);
-        saveViaMediaStore(kmlContent, baseName + ".kml", "application/vnd.google-earth.kml+xml");
+        if (saveKml) {
+            String kmlContent = generateKml(locationRecords);
+            saveViaMediaStore(kmlContent, baseName + ".kml", "application/vnd.google-earth.kml+xml");
+        }
     }
 
     /**
