@@ -46,13 +46,21 @@ jobs:
           find app/build/outputs/apk -name "*.apk" | tee apk_paths.txt
           echo "APK path confirmed: $(cat apk_paths.txt)"
 
+      # ── Rename APK to match artifact name ──────────────────────────────────
+      - name: Rename APK
+        if: success()
+        run: |
+          mv app/build/outputs/apk/debug/app-debug.apk \
+             app/build/outputs/apk/debug/GPS-Location-Logger-${BUILD_TIMESTAMP}.apk
+          echo "Renamed APK → GPS-Location-Logger-${BUILD_TIMESTAMP}.apk"
+
       # ── Upload APK artifact ─────────────────────────────────────────────────
       - name: Upload debug APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: GPS-Location-Logger-${{ env.BUILD_TIMESTAMP }}
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/GPS-Location-Logger-${{ env.BUILD_TIMESTAMP }}.apk
           if-no-files-found: error    # fail loudly if APK is missing
 
       # ── Write job summary ───────────────────────────────────────────────────
