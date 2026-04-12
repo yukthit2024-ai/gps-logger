@@ -39,7 +39,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -255,8 +256,8 @@ public class MainActivity extends AppCompatActivity {
     private void handleNewLocation(@NonNull Location location) {
         double latitude  = location.getLatitude();
         double longitude = location.getLongitude();
-        // ISO 8601 UTC timestamp  e.g. "2026-04-12T14:30:00Z"
-        String timestamp = Instant.now().toString();
+        // ISO 8601 timestamp with local timezone offset, e.g. "2026-04-12T20:00:00.123+05:30"
+        String timestamp = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
         Log.d(TAG, String.format("New fix → lat=%.6f  lon=%.6f  time=%s", latitude, longitude, timestamp));
 
@@ -299,8 +300,11 @@ public class MainActivity extends AppCompatActivity {
             jsonArray.put(record);
         }
 
-        // File-system-safe timestamp, e.g. "2026-04-12T08-30-00.123Z"
-        String fileTimestamp = Instant.now().toString().replace(":", "-");
+        // Timezone-aware timestamp for file name — colons and '+' replaced so it is
+        // filesystem-safe, e.g. "2026-04-12T20-00-00.123+05-30" → safe on all OSes
+        String fileTimestamp = ZonedDateTime.now()
+                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                .replace(":", "-");   // covers both time separators and timezone colon
         String fileName = "location_logs_" + fileTimestamp + ".json";
 
         // Delegate to MediaStore — Android 10+ only (minSdk = 29)
