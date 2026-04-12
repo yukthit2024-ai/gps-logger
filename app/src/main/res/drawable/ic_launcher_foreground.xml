@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- GPS pin / location marker icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,20 C40.7,20 30,30.7 30,44 C30,62 54,88 54,88 C54,88 78,62 78,44 C78,30.7 67.3,20 54,20 Z" />
+    <path
+        android:fillColor="#0F3460"
+        android:pathData="M54,36 C49.6,36 46,39.6 46,44 C46,48.4 49.6,52 54,52 C58.4,52 62,48.4 62,44 C62,39.6 58.4,36 54,36 Z" />
+
+</vector>
