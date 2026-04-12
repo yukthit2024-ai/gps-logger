@@ -17,6 +17,13 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- Foreground service permissions (Required for background tracking) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!-- Required on Android 13+ (API 33+) to show the tracking notification -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Required feature declaration so the app is not listed on devices without GPS -->
     <uses-feature
         android:name="android.hardware.location.gps"
@@ -31,21 +38,18 @@
         android:theme="@style/Theme.GPSLocationLogger">
 
         <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:screenOrientation="portrait">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <activity
             android:name=".SettingsActivity"
             android:exported="false"
             android:label="Options"
             android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity" />
+
+        <!-- Foreground Service for Background Tracking -->
+        <service
+            android:name=".LocationService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
     </application>
 

@@ -1,8 +1,10 @@
 package com.example.gpslocationlogger;
 
-import android.Manifest;
+import android.content.ComponentName;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -10,6 +12,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
@@ -26,19 +31,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.Priority;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -79,17 +76,43 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvStatus;
     private TextView tvCoordinates;
 
-    // ── Location ─────────────────────────────────────────────────────────────
-    private FusedLocationProviderClient fusedLocationClient;
-    private LocationRequest locationRequest;
-    private LocationCallback locationCallback;
-
-    // ── Data ─────────────────────────────────────────────────────────────────
-    /** In-memory list accumulating location fixes during a session. */
-    private final List<JSONObject> locationRecords = new ArrayList<>();
-
-    /** Guards against starting multiple concurrent tracking sessions. */
+    // ── Service ─────────────────────────────────────────────────────────────
+    private LocationService locationService;
+    private boolean isBound = false;
     private boolean isTracking = false;
+
+    // Polling handler for live UI updates
+    private final Handler uiHandler = new Handler(Looper.getMainLooper());
+    private final Runnable uiUpdater = new Runnable() {
+        @Override
+        public void run() {
+            if (isBound && locationService != null) {
+                updateUiFromService();
+            }
+            uiHandler.postDelayed(this, 1000);
+        }
+    };
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            LocationService.LocalBinder binder = (LocationService.LocalBinder) service;
+            locationService = binder.getService();
+            isBound = true;
+            isTracking = true;
+            setTrackingUiState(true);
+            Log.d(TAG, "Bound to LocationService");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            locationService = null;
+            isBound = false;
+            isTracking = false;
+            setTrackingUiState(false);
+            Log.d(TAG, "Unbound from LocationService");
+        }
+    };
 
     // ────────────────────────────────────────────────────────────────────────
     @Override
@@ -103,29 +126,31 @@ public class MainActivity extends AppCompatActivity {
         tvStatus         = findViewById(R.id.tvStatus);
         tvCoordinates    = findViewById(R.id.tvCoordinates);
 
-        // Initialise FusedLocationProviderClient
-        // LocationRequest is NOT built here — it is rebuilt in startTracking()
-        // each time so it always picks up the latest SharedPreferences value.
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-
-        // Define callback that fires on each location fix
-        locationCallback = new LocationCallback() {
-            @Override
-            public void onLocationResult(@NonNull LocationResult result) {
-                for (Location location : result.getLocations()) {
-                    if (location != null) {
-                        handleNewLocation(location);
-                    }
-                }
-            }
-        };
-
         // Button listeners
         btnStartTracking.setOnClickListener(v -> onStartTrackingClicked());
         btnEndTracking.setOnClickListener(v -> onEndTrackingClicked());
 
         // Initial UI state
         setTrackingUiState(false);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Attempt to bind to the service if it is already running
+        Intent intent = new Intent(this, LocationService.class);
+        bindService(intent, serviceConnection, 0); // 0 = don't auto-create
+        uiHandler.post(uiUpdater);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (isBound) {
+            unbindService(serviceConnection);
+            isBound = false;
+        }
+        uiHandler.removeCallbacks(uiUpdater);
     }
 
     @Override
@@ -143,43 +168,32 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    // ── Button Handlers ──────────────────────────────────────────────────────
-
-    /** Called when the user taps "Start Tracking". */
-    private void onStartTrackingClicked() {
-        if (isTracking) {
-            Log.w(TAG, "Already tracking — ignoring duplicate start request.");
-            return;
-        }
-        checkAndRequestPermission();
-    }
-
-    /** Called when the user taps "End Tracking". */
-    private void onEndTrackingClicked() {
-        if (!isTracking) {
-            Log.w(TAG, "Not currently tracking — ignoring end request.");
-            return;
-        }
-        stopTracking();
-        saveLocationDataToFile();
-    }
-
-    // ── Permission Handling ──────────────────────────────────────────────────
-
-    /** Checks whether ACCESS_FINE_LOCATION is granted, requests it if not. */
+    // ── Button Handlers ────────────────────────────────────────────────────�    /** Checks whether required permissions are granted, requests them if not. */
     private void checkAndRequestPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            // Already have permission — start tracking immediately
+        List<String> permissionsNeeded = new ArrayList<>();
+        permissionsNeeded.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
+
+        // Android 13+ requires explicit notification permission for Foreground Services
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionsNeeded.add(android.Manifest.permission.POST_NOTIFICATIONS);
+        }
+
+        List<String> listPermissionsNeeded = new ArrayList<>();
+        for (String p : permissionsNeeded) {
+            if (ContextCompat.checkSelfPermission(this, p) != PackageManager.PERMISSION_GRANTED) {
+                listPermissionsNeeded.add(p);
+            }
+        }
+
+        if (listPermissionsNeeded.isEmpty()) {
             startTracking();
-        } else if (ActivityCompat.shouldShowRequestPermissionRationale(
-                this, Manifest.permission.ACCESS_FINE_LOCATION)) {
-            // Show rationale then request
-            new AlertDialog.Builder(this)
-                    .setTitle("Location Permission Required")
-                    .setMessage("This app needs access to your precise location to log GPS coordinates. Please grant the permission.")
-                    .setPositiveButton("Grant", (dialog, which) ->
-                            ActivityCompat.requestPermissions(
+        } else {
+            ActivityCompat.requestPermissions(
+                    this,
+                    listPermissionsNeeded.toArray(new String[0]),
+                    LOCATION_PERMISSION_REQUEST_CODE);
+        }
+    }                    ActivityCompat.requestPermissions(
                                     this,
                                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                                     LOCATION_PERMISSION_REQUEST_CODE))
@@ -205,112 +219,78 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "Location permission granted.");
-                Toast.makeText(this, "Permission granted — starting tracking.", Toast.LENGTH_SHORT).show();
+            boolean allGranted = true;
+            for (int res : grantResults) {
+                if (res != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+
+            if (allGranted) {
+                Log.d(TAG, "Permissions granted.");
                 startTracking();
             } else {
-                Log.w(TAG, "Location permission denied.");
-                boolean showRationale = ActivityCompat.shouldShowRequestPermissionRationale(
-                        this, Manifest.permission.ACCESS_FINE_LOCATION);
-                if (!showRationale) {
-                    new AlertDialog.Builder(this)
-                            .setTitle("Permission Denied Permanently")
-                            .setMessage("Location permission was permanently denied. Please enable it from App Settings to use this feature.")
-                            .setPositiveButton("Open Settings", (dialog, which) -> {
-                                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                        Uri.fromParts("package", getPackageName(), null));
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                startActivity(intent);
-                            })
-                            .setNegativeButton("Cancel", null)
-                            .show();
-                } else {
-                    Toast.makeText(this, "Location permission denied.", Toast.LENGTH_SHORT).show();
-                }
+                Log.w(TAG, "Permissions denied.");
+                Toast.makeText(this, "Required permissions denied.", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
     // ── Tracking ─────────────────────────────────────────────────────────────
 
-    /** Starts location updates. Assumes permission is already granted. */
+    /** Starts the Location Service. */
     private void startTracking() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            Log.e(TAG, "startTracking() called without permission — aborting.");
-            return;
-        }
-
-        // Read interval from settings
-        SharedPreferences prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE);
-        long intervalMs = prefs.getLong(SettingsActivity.KEY_INTERVAL_MS, SettingsActivity.DEFAULT_INTERVAL_MS);
-
-        // Build LocationRequest dynamically
-        locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs)
-                .setMinUpdateIntervalMillis(intervalMs) // matched for simplicity
-                .build();
-
-        Log.d(TAG, "Starting tracking with interval: " + intervalMs + "ms");
-
-        // Clear any previous session data
-        locationRecords.clear();
-
-        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, getMainLooper());
+        Intent intent = new Intent(this, LocationService.class);
+        ContextCompat.startForegroundService(this, intent);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
 
         isTracking = true;
         setTrackingUiState(true);
-        Log.d(TAG, "Location tracking started.");
-        Toast.makeText(this, "Tracking started (" + (intervalMs/1000) + "s interval).", Toast.LENGTH_SHORT).show();
+        Log.d(TAG, "Location service started.");
+        Toast.makeText(this, "Background tracking started.", Toast.LENGTH_SHORT).show();
     }
 
-    /** Stops location updates. */
+    /** Fetches data from service, saves it, and stops the service. */
     private void stopTracking() {
-        fusedLocationClient.removeLocationUpdates(locationCallback);
+        if (!isBound || locationService == null) return;
+
+        List<JSONObject> records = locationService.getLocationRecords();
+        saveLocationDataToFile(records);
+
+        locationService.stopTracking();
+        if (isBound) {
+            unbindService(serviceConnection);
+            isBound = false;
+        }
+
         isTracking = false;
         setTrackingUiState(false);
-        Log.d(TAG, "Location tracking stopped. Records collected: " + locationRecords.size());
+        Log.d(TAG, "Tracking stopped. Records: " + records.size());
         Toast.makeText(this, "Tracking stopped.", Toast.LENGTH_SHORT).show();
     }
 
-    /**
-     * Called on every location fix received from the callback.
-     * Builds a JSON object and appends it to the in-memory list.
-     */
-    private void handleNewLocation(@NonNull Location location) {
-        double latitude  = location.getLatitude();
-        double longitude = location.getLongitude();
-        // ISO 8601 timestamp with local timezone offset, e.g. "2026-04-12T20:00:00.123+05:30"
-        String timestamp = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-
-        Log.d(TAG, String.format("New fix → lat=%.6f  lon=%.6f  time=%s", latitude, longitude, timestamp));
-
-        // Update live coordinate display
-        tvCoordinates.setText(String.format("Lat: %.6f\nLon: %.6f", latitude, longitude));
-        tvStatus.setText("Tracking… (" + locationRecords.size() + 1 + " fix(es))");
-
-        // Build JSON record
-        try {
-            JSONObject record = new JSONObject();
-            record.put("latitude",  latitude);
-            record.put("longitude", longitude);
-            record.put("timestamp", timestamp);
-            locationRecords.add(record);
-        } catch (JSONException e) {
-            Log.e(TAG, "Failed to build JSON record", e);
+    /** Updates the UI with the latest data from the service. */
+    private void updateUiFromService() {
+        List<JSONObject> records = locationService.getLocationRecords();
+        if (!records.isEmpty()) {
+            JSONObject last = records.get(records.size() - 1);
+            try {
+                double lat = last.getDouble("latitude");
+                double lon = last.getDouble("longitude");
+                tvCoordinates.setText(String.format("Lat: %.6f\nLon: %.6f", lat, lon));
+                tvStatus.setText("Tracking… (" + records.size() + " fix(es))");
+            } catch (JSONException e) {
+                Log.e(TAG, "UI update error", e);
+            }
         }
     }
 
-    // ── File I/O ─────────────────────────────────────────────────────────────
-
     /**
-     * Serialises all collected records and saves them in three formats:
-     * JSON, GPX 1.1, and KML 2.2.
-     * All files share the same base timestamp and are saved to:
-     *   /sdcard/Download/GPSLocationLogger/
+     * Serialises collected records and saves them in selected formats.
      */
-    private void saveLocationDataToFile() {
-        if (locationRecords.isEmpty()) {
+    private void saveLocationDataToFile(List<JSONObject> records) {
+        if (records.isEmpty()) {
             Toast.makeText(this, "No location data to save.", Toast.LENGTH_SHORT).show();
             Log.w(TAG, "saveLocationDataToFile() — nothing to write.");
             return;
@@ -332,7 +312,7 @@ public class MainActivity extends AppCompatActivity {
         if (saveJson) {
             try {
                 JSONArray jsonArray = new JSONArray();
-                for (JSONObject record : locationRecords) {
+                for (JSONObject record : records) {
                     jsonArray.put(record);
                 }
                 saveViaMediaStore(jsonArray.toString(2), baseName + ".json", "application/json");
@@ -343,13 +323,13 @@ public class MainActivity extends AppCompatActivity {
 
         // 3. Generate and save GPX
         if (saveGpx) {
-            String gpxContent = generateGpx(locationRecords);
+            String gpxContent = generateGpx(records);
             saveViaMediaStore(gpxContent, baseName + ".gpx", "application/gpx+xml");
         }
 
         // 4. Generate and save KML
         if (saveKml) {
-            String kmlContent = generateKml(locationRecords);
+            String kmlContent = generateKml(records);
             saveViaMediaStore(kmlContent, baseName + ".kml", "application/vnd.google-earth.kml+xml");
         }
     }
@@ -470,11 +450,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Safety net: stop updates to avoid leak if activity is destroyed mid-session
-        if (isTracking) {
-            Log.w(TAG, "onDestroy() called while tracking — stopping updates.");
-            fusedLocationClient.removeLocationUpdates(locationCallback);
-            isTracking = false;
-        }
+        // Stop polling to avoid leaks
+        uiHandler.removeCallbacks(uiUpdater);
     }
 }
