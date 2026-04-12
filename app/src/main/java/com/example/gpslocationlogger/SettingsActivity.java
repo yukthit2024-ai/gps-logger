@@ -109,7 +109,7 @@ public class SettingsActivity extends AppCompatActivity {
         if (!isChecked && !cbJson.isChecked() && !cbGpx.isChecked() && !cbKml.isChecked()) {
             // Revert: can't uncheck the last one
             checkBox.setChecked(true);
-            Toast.makeText(this, "At least one format must be selected.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_at_least_one, Toast.LENGTH_SHORT).show();
             return;
         }
         prefs.edit().putBoolean(key, isChecked).apply();
@@ -144,12 +144,12 @@ public class SettingsActivity extends AppCompatActivity {
                 return INTERVAL_LABELS[i];
             }
         }
-        return "Every 5 seconds";
+        return getString(R.string.freq_5s);
     }
 
     /** Updates the summary text below the RadioGroup. */
     private void updatePreview(long intervalMs) {
-        tvIntervalPreview.setText("GPS fix logged: " + labelForInterval(intervalMs).toLowerCase());
+        tvIntervalPreview.setText(getString(R.string.preview_interval, labelForInterval(intervalMs).toLowerCase()));
     }
 
     /** Handle the toolbar back arrow. */

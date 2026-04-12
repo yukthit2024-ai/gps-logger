@@ -1,3 +1,29 @@
 <resources>
     <string name="app_name">GPS Location Logger</string>
+
+    <!-- MainActivity -->
+    <string name="title_activity">ACTIVITY</string>
+    <string name="title_coordinates">GPS COORDINATES</string>
+    <string name="status_idle">Press \"Start Tracking\" to begin.</string>
+    <string name="status_waiting">Waiting for first fix…</string>
+    <string name="status_tracking">Tracking in progress…</string>
+    <string name="label_start_tracking">Start Tracking</string>
+    <string name="label_end_tracking">End Tracking</string>
+    <string name="label_save_path">📁  Files saved to:  Download/GPSLocationLogger/</string>
+
+    <!-- SettingsActivity -->
+    <string name="section_logging">LOGGING</string>
+    <string name="label_frequency">Logging Frequency</string>
+    <string name="desc_frequency">How often to record a GPS coordinate</string>
+    <string name="freq_5s">Every 5 seconds  (high accuracy)</string>
+    <string name="freq_10s">Every 10 seconds</string>
+    <string name="freq_30s">Every 30 seconds</string>
+    <string name="freq_1m">Every 1 minute</string>
+    <string name="freq_5m">Every 5 minutes  (battery saver)</string>
+    <string name="preview_interval">GPS fix logged: %1$s</string>
+    <string name="section_formats">EXPORT FORMATS</string>
+    <string name="format_json">JSON Format  (.json)</string>
+    <string name="format_gpx">GPX Format  (.gpx) - GPS Exchange</string>
+    <string name="format_kml">KML Format  (.kml) - Google Earth</string>
+    <string name="toast_at_least_one">At least one format must be selected.</string>
 </resources>

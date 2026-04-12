@@ -170,7 +170,7 @@ public class LocationService extends Service {
     }
 
     private void updateNotification(String contentText) {
-        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_MANAGER_SERVICE);
+        NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager != null) {
             manager.notify(NOTIFICATION_ID, getNotification(contentText));
         }

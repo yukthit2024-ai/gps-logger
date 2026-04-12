@@ -81,6 +81,8 @@ public class MainActivity extends AppCompatActivity {
     private LocationService locationService;
     private boolean isBound = false;
     private boolean isTracking = false;
+    private Uri lastSavedUri = null;
+    private String lastSavedName = null;
 
     // Polling handler for live UI updates
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
@@ -161,9 +163,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem shareItem = menu.findItem(R.id.action_share);
+        if (shareItem != null) {
+            shareItem.setVisible(lastSavedUri != null);
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.action_settings) {
+        int id = item.getItemId();
+        if (id == R.id.action_settings) {
             startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        } else if (id == R.id.action_share) {
+            shareLastLog();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -244,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
         isTracking = true;
         setTrackingUiState(true);
         Log.d(TAG, "Location service started.");
-        Toast.makeText(this, "Background tracking started.", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.status_tracking), Toast.LENGTH_SHORT).show();
     }
 
     /** Fetches data from service, saves it, and stops the service. */
@@ -263,7 +278,7 @@ public class MainActivity extends AppCompatActivity {
         isTracking = false;
         setTrackingUiState(false);
         Log.d(TAG, "Tracking stopped. Records: " + records.size());
-        Toast.makeText(this, "Tracking stopped.", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.label_end_tracking, Toast.LENGTH_SHORT).show();
     }
 
     /** Updates the UI with the latest data from the service. */
@@ -275,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
                 double lat = last.getDouble("latitude");
                 double lon = last.getDouble("longitude");
                 tvCoordinates.setText(String.format("Lat: %.6f\nLon: %.6f", lat, lon));
-                tvStatus.setText("Tracking… (" + records.size() + " fix(es))");
+                tvStatus.setText(getString(R.string.status_tracking) + " (" + records.size() + " fix(es))");
             } catch (JSONException e) {
                 Log.e(TAG, "UI update error", e);
             }
@@ -326,14 +341,35 @@ public class MainActivity extends AppCompatActivity {
         // 4. Generate and save KML
         if (saveKml) {
             String kmlContent = generateKml(records);
-            saveViaMediaStore(kmlContent, baseName + ".kml", "application/vnd.google-earth.kml+xml");
+            lastSavedUri = saveViaMediaStore(kmlContent, baseName + ".kml", "application/vnd.google-earth.kml+xml");
+            lastSavedName = baseName + ".kml";
+        } else if (saveGpx) {
+            // If KML not saved, use GPX as last saved for sharing
+            String gpxContent = generateGpx(records);
+            lastSavedUri = saveViaMediaStore(gpxContent, baseName + ".gpx", "application/gpx+xml");
+            lastSavedName = baseName + ".gpx";
+        } else if (saveJson) {
+            // Fallback to JSON
+            try {
+                JSONArray jsonArray = new JSONArray();
+                for (JSONObject record : records) jsonArray.put(record);
+                lastSavedUri = saveViaMediaStore(jsonArray.toString(2), baseName + ".json", "application/json");
+                lastSavedName = baseName + ".json";
+            } catch (JSONException ignored) {}
+        }
+
+        if (lastSavedUri != null) {
+            TextView tvSavePath = findViewById(R.id.tvSavePath);
+            tvSavePath.setText("📁 Last saved: " + lastSavedName);
+            invalidateOptionsMenu(); // Refresh share icon visibility
         }
     }
 
     /**
      * Writes string content to a file in Downloads/GPSLocationLogger/ via MediaStore.
+     * @return the Uri of the saved file, or null if failed.
      */
-    private void saveViaMediaStore(String content, String fileName, String mimeType) {
+    private Uri saveViaMediaStore(String content, String fileName, String mimeType) {
         ContentValues values = new ContentValues();
         values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
         values.put(MediaStore.Downloads.MIME_TYPE,    mimeType);
@@ -345,7 +381,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (fileUri == null) {
             Log.e(TAG, "MediaStore insert failed for " + fileName);
-            return;
+            return null;
         }
 
         try (OutputStream os = getContentResolver().openOutputStream(fileUri);
@@ -354,10 +390,26 @@ public class MainActivity extends AppCompatActivity {
             writer.write(content);
             writer.flush();
             Log.i(TAG, "Saved → " + fileName);
+            return fileUri;
 
         } catch (IOException e) {
             Log.e(TAG, "Error writing " + fileName, e);
+            return null;
         }
+    }
+
+    /** Triggers the standard Android system share sheet for the last saved log. */
+    private void shareLastLog() {
+        if (lastSavedUri == null) {
+            Toast.makeText(this, "No log file to share yet.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("application/octet-stream"); // Generic stream
+        shareIntent.putExtra(Intent.EXTRA_STREAM, lastSavedUri);
+        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(Intent.createChooser(shareIntent, "Share Location Log"));
     }
 
     /** Builds a GPX 1.1 XML string from the location records. */
@@ -433,10 +485,10 @@ public class MainActivity extends AppCompatActivity {
         btnEndTracking.setEnabled(tracking);
 
         if (tracking) {
-            tvStatus.setText("Tracking in progress…");
-            tvCoordinates.setText("Waiting for first fix…");
+            tvStatus.setText(R.string.status_tracking);
+            tvCoordinates.setText(R.string.status_waiting);
         } else {
-            tvStatus.setText("Press \"Start Tracking\" to begin.");
+            tvStatus.setText(R.string.status_idle);
             tvCoordinates.setText("–");
         }
     }
