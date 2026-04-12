@@ -1,0 +1,164 @@
+create an android application which has a screen with a two buttons labelled "Start Tracking" and "End Tracking". 
+On button click of "Start Tracking", the app has to start logging the GPS co-ordinates and timestamp to a file in JSON format.
+On button click of "Stopt Tracking", the app has to stop logging the GPS to the file .
+Th json file has to be saved in user space directory 
+It should start and stop GPS/location automatically or with prmission from user.
+develop the app in java 
+Give it as a single prompt to give to an agent to achieve this
+store the timestamp as ISO format instead of milliseconds since epoc
+--------------------------------------------------------------------------------------------
+output
+
+You are an expert Android developer. Build a complete Android application in **Java (not Kotlin)** using Android Studio.
+
+## App Overview
+
+Create a simple app with one screen containing two buttons:
+
+* "Start Tracking"
+* "End Tracking"
+
+## Functional Requirements
+
+### Start Tracking:
+
+* When user clicks "Start Tracking":
+
+  * Check for location permission (ACCESS_FINE_LOCATION)
+  * If not granted, request it at runtime
+  * Once granted:
+
+    * Start GPS/location tracking using FusedLocationProviderClient
+    * Capture:
+
+      * Latitude
+      * Longitude
+      * Timestamp (ISO 8601 format)
+    * Collect updates every 5–10 seconds
+    * Store the collected data in memory as a JSON array
+
+### End Tracking:
+
+* When user clicks "End Tracking":
+
+  * Stop location updates immediately
+  * Save all collected data into a JSON file
+  * File must be properly closed and flushed
+
+## Timestamp Format
+
+* Store timestamp in ISO 8601 format, e.g.:
+  "2026-04-12T14:30:00Z"
+* Use Java time APIs (java.time package), such as:
+
+  * Instant.now()
+  * DateTimeFormatter.ISO_INSTANT
+
+## JSON Format
+
+Store data like:
+[
+{
+"latitude": 12.9716,
+"longitude": 77.5946,
+"timestamp": "2026-04-12T14:30:00Z"
+}
+]
+
+## File Storage
+
+* Save file in app-specific external storage:
+  getExternalFilesDir(null)
+* File name format:
+  location_logs_<current_timestamp>.json
+* Ensure compatibility with scoped storage (no MANAGE_EXTERNAL_STORAGE)
+* Log the saved file path using Logcat
+
+## UI Requirements
+
+* Use ConstraintLayout
+* Center two buttons vertically:
+
+  * "Start Tracking"
+  * "End Tracking"
+* Initially:
+
+  * "Start Tracking" enabled
+  * "End Tracking" disabled
+* While tracking:
+
+  * Disable "Start Tracking"
+  * Enable "End Tracking"
+
+## Technical Requirements
+
+### Location
+
+* Use FusedLocationProviderClient (Google Play Services)
+* Use LocationRequest with:
+
+  * Priority: PRIORITY_HIGH_ACCURACY
+  * Interval: ~5000–10000 ms
+* Use LocationCallback to receive updates
+* Properly stop updates using removeLocationUpdates()
+
+### Permissions
+
+* Handle runtime permission:
+  ACCESS_FINE_LOCATION
+* Handle:
+
+  * Permission granted
+  * Permission denied
+  * "Don't ask again" scenario
+* Show Toast messages for user feedback
+
+### Lifecycle Handling
+
+* Avoid memory leaks
+* Stop location updates in onDestroy()
+* Prevent multiple tracking sessions
+
+## Error Handling
+
+* Handle null locations
+* Handle IO exceptions while writing file
+* Log important events
+
+## Project Structure
+
+Provide complete code for:
+
+1. MainActivity.java
+2. activity_main.xml
+3. AndroidManifest.xml
+4. Gradle dependencies (Module-level)
+
+## Dependencies
+
+Include:
+
+* Google Play Services Location library
+
+## Code Quality
+
+* Write clean, readable Java code
+* Add comments explaining logic
+* Use proper naming conventions
+* Avoid deprecated APIs
+
+## Optional (if possible)
+
+* Show live coordinates on screen (TextView)
+* Add logs for debugging
+
+## Output Format
+
+Return:
+
+* Full working code for all files
+* Clearly separated sections
+* No pseudocode — only runnable code
+
+Ensure the app runs on Android 8+ (API 26 and above).
+
