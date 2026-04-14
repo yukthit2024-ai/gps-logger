@@ -32,7 +32,9 @@ jobs:
 
       # ── Timestamp (set once, reused in artifact name & summary) ─────────────
       - name: Generate build timestamp
-        run: echo "BUILD_TIMESTAMP=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
+        #run: echo "BUILD_TIMESTAMP=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
+        run: echo "BUILD_TIMESTAMP=$(TZ=Asia/Kolkata date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
+        
 
       # ── Build ───────────────────────────────────────────────────────────────
       - name: Build debug APK
@@ -67,7 +69,7 @@ jobs:
       - name: Job summary
         if: success()
         run: |
-          echo "## ✅ Build Succeeded" >> $GITHUB_STEP_SUMMARY
+          echo "## Build Succeeded" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
