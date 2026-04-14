@@ -3,6 +3,9 @@ plugins {
     id 'com.android.application'
 }
 
+def gitSha = 'git rev-parse --short HEAD'.execute().text.trim()
+def gitTag = 'git describe        --tags'.execute().text.trim()
+
 android {
     namespace 'com.example.gpslocationlogger'
     compileSdk 34
@@ -15,6 +18,11 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // Inject Git info into BuildConfig
+        buildConfigField "String", "BUILD_TIMESTAMP", "\"${new Date().format('yyyyMMdd.HHmmss')}\""
+        buildConfigField "String", "GIT_SHA", "\"${gitSha}\""
+        buildConfigField "String", "GIT_TAG", "\"${gitTag}\""		
     }
 
     buildTypes {
