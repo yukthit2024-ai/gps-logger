@@ -23,9 +23,10 @@
         android:layout_marginTop="24dp" />
 
     <TextView
+        android:id="@+id/tvAboutContent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/about_dummy_text"
+        android:text="@string/about_description"
         android:textSize="16sp"
         android:gravity="center"
         android:lineSpacingMultiplier="1.4"

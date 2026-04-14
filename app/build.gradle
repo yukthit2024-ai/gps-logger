@@ -10,6 +10,10 @@ android {
     namespace 'com.example.gpslocationlogger'
     compileSdk 34
 
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId "com.example.gpslocationlogger"
         minSdk 29          // Android 10.0 (Q) — MediaStore.Files used for storage
