@@ -10,8 +10,8 @@
 
     <item
         android:id="@+id/action_share"
-        android:title="Share Last Log"
-        android:icon="@android:drawable/ic_menu_share"
-        app:showAsAction="ifRoom" />
+        android:title="Share Log"
+        android:icon="@drawable/ic_share"
+        app:showAsAction="always" />
 
 </menu>
