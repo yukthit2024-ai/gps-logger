@@ -14,7 +14,8 @@ public class AboutActivity extends AppCompatActivity {
         String buildInfo = "GPS Location Logger\n" +
                 "Timestamp: " + BuildConfig.BUILD_TIMESTAMP + "\n" +
                 "Commit: " + BuildConfig.GIT_SHA + "\n" +
-                "Tag: " + BuildConfig.GIT_TAG + "\n\n" +
+                "Full SHA: " + BuildConfig.GIT_SHA_FULL + "\n" +
+//                "Tag: " + BuildConfig.GIT_TAG + "\n\n" +
                 getString(R.string.about_description);
         tvAboutContent.setText(buildInfo);
 
