@@ -337,7 +337,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 double lat = last.getDouble("latitude");
                 double lon = last.getDouble("longitude");
-                tvCoordinates.setText(String.format("Lat: %.6f\nLon: %.6f", lat, lon));
+                tvCoordinates.setText(String.format("Lat: %.6f   Lon: %.6f", lat, lon));
                 tvStatus.setText(getString(R.string.status_tracking) + " (" + records.size() + " fix(es))");
             } catch (JSONException e) {
                 Log.e(TAG, "UI update error", e);
