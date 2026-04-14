@@ -325,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
         
         String baseName;
         if (!sanitizedInfo.isEmpty()) {
-            baseName = "location_logs_" + sanitizedInfo + "_" + fileTimestamp;
+            baseName = "location_logs_" + fileTimestamp + "_" + sanitizedInfo;
         } else {
             baseName = "location_logs_" + fileTimestamp;
         }
