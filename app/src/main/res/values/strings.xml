@@ -3,6 +3,8 @@
 
     <!-- MainActivity -->
     <string name="title_activity">ACTIVITY</string>
+    <string name="title_tracking_info">TRACKING INFO</string>
+    <string name="hint_tracking_info">Enter trip name or notes (optional)</string>
     <string name="title_coordinates">GPS COORDINATES</string>
     <string name="status_idle">Press \"Start Tracking\" to begin.</string>
     <string name="status_waiting">Waiting for first fix…</string>

@@ -21,7 +21,9 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,6 +31,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -76,6 +79,8 @@ public class MainActivity extends AppCompatActivity {
     private Button btnEndTracking;
     private TextView tvStatus;
     private TextView tvCoordinates;
+    private EditText etTrackingInfo;
+    private CardView cardTrackingInfo;
 
     // ── Service ─────────────────────────────────────────────────────────────
     private LocationService locationService;
@@ -128,6 +133,8 @@ public class MainActivity extends AppCompatActivity {
         btnEndTracking   = findViewById(R.id.btnEndTracking);
         tvStatus         = findViewById(R.id.tvStatus);
         tvCoordinates    = findViewById(R.id.tvCoordinates);
+        etTrackingInfo   = findViewById(R.id.etTrackingInfo);
+        cardTrackingInfo = findViewById(R.id.cardTrackingInfo);
 
         // Button listeners
         btnStartTracking.setOnClickListener(v -> onStartTrackingClicked());
@@ -311,7 +318,17 @@ public class MainActivity extends AppCompatActivity {
         String fileTimestamp = ZonedDateTime.now()
                 .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                 .replace(":", "-");
-        String baseName = "location_logs_" + fileTimestamp;
+
+        // 2. Prepare user info string (sanitized)
+        String infoText = etTrackingInfo.getText().toString().trim();
+        String sanitizedInfo = sanitizeFilename(infoText);
+        
+        String baseName;
+        if (!sanitizedInfo.isEmpty()) {
+            baseName = "location_logs_" + sanitizedInfo + "_" + fileTimestamp;
+        } else {
+            baseName = "location_logs_" + fileTimestamp;
+        }
 
         // Read format preferences
         SharedPreferences prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE);
@@ -362,7 +379,17 @@ public class MainActivity extends AppCompatActivity {
             TextView tvSavePath = findViewById(R.id.tvSavePath);
             tvSavePath.setText("📁 Last saved: " + lastSavedName);
             invalidateOptionsMenu(); // Refresh share icon visibility
+            etTrackingInfo.setText(""); // Clear for next session
         }
+    }
+
+    /**
+     * Removes characters that are unsafe for filenames.
+     */
+    private String sanitizeFilename(String input) {
+        if (input == null || input.isEmpty()) return "";
+        return input.replaceAll("\\s+", "_")
+                    .replaceAll("[^a-zA-Z0-9_-]", "");
     }
 
     /**
@@ -483,6 +510,10 @@ public class MainActivity extends AppCompatActivity {
     private void setTrackingUiState(boolean tracking) {
         btnStartTracking.setEnabled(!tracking);
         btnEndTracking.setEnabled(tracking);
+
+        if (cardTrackingInfo != null) {
+            cardTrackingInfo.setVisibility(tracking ? View.VISIBLE : View.GONE);
+        }
 
         if (tracking) {
             tvStatus.setText(R.string.status_tracking);
