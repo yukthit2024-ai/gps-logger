@@ -34,5 +34,5 @@
     <string name="help_title">Help &amp; Support</string>
     <string name="help_dummy_text">Welcome to GPS Location Logger!\n\nTo start tracking, simply press the "Start Tracking" button. The app will record your coordinates in the background. When you\'re finished, press "End Tracking" to save your data.\n\nYou can configure the export formats (JSON, GPX, KML) in the Settings menu.\n\nFor more support, please visit our website.</string>
     <string name="about_title">About</string>
-    <string name="about_dummy_text">GPS Location Logger\nVersion 1.0.0\n\nA simple and powerful tool for recording GPS tracks.\n\nDeveloped by Antigravity Team.\n© 2026 All Rights Reserved.</string>
+    <string name="about_dummy_text">GPS Location Logger\nVersion 1.0.0\n\nA simple and powerful tool for recording GPS tracks.\n\nDeveloped by Shibu T Narayanan.\n© 2026 All Rights Reserved.</string>
 </resources>
