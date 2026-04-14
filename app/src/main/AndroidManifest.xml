@@ -54,6 +54,20 @@
             android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity" />
 
+        <activity
+            android:name=".HelpActivity"
+            android:exported="false"
+            android:label="Help"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".AboutActivity"
+            android:exported="false"
+            android:label="About"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".MainActivity" />
+
         <!-- Foreground Service for Background Tracking -->
         <service
             android:name=".LocationService"

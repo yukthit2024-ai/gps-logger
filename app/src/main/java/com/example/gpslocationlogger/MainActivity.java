@@ -30,10 +30,16 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+
+import com.google.android.material.navigation.NavigationView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -81,6 +87,9 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvCoordinates;
     private EditText etTrackingInfo;
     private CardView cardTrackingInfo;
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private Toolbar toolbar;
 
     // ── Service ─────────────────────────────────────────────────────────────
     private LocationService locationService;
@@ -140,8 +149,43 @@ public class MainActivity extends AppCompatActivity {
         btnStartTracking.setOnClickListener(v -> onStartTrackingClicked());
         btnEndTracking.setOnClickListener(v -> onEndTrackingClicked());
 
+        // Setup Toolbar
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        // Setup Navigation Drawer
+        drawerLayout = findViewById(R.id.drawer_layout);
+        navigationView = findViewById(R.id.nav_view);
+        
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawerLayout, toolbar, R.string.label_start_tracking, R.string.label_end_tracking);
+        drawerLayout.addDrawerListener(toggle);
+        toggle.syncState();
+
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_settings) {
+                startActivity(new Intent(this, SettingsActivity.class));
+            } else if (id == R.id.nav_help) {
+                startActivity(new Intent(this, HelpActivity.class));
+            } else if (id == R.id.nav_about) {
+                startActivity(new Intent(this, AboutActivity.class));
+            }
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        });
+
         // Initial UI state
         setTrackingUiState(false);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override
