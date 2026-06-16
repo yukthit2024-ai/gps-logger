@@ -47,7 +47,7 @@
             android:exported="true"
             android:supportsPictureInPicture="true"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
-            android:screenOrientation="portrait">
+            android:screenOrientation="fullSensor">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -58,28 +58,28 @@
             android:name=".SettingsActivity"
             android:exported="false"
             android:label="Options"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullSensor"
             android:parentActivityName=".MainActivity" />
 
         <activity
             android:name=".TracksListActivity"
             android:exported="false"
             android:label="@string/menu_tracks_list"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullSensor"
             android:parentActivityName=".MainActivity" />
 
         <activity
             android:name=".HelpActivity"
             android:exported="false"
             android:label="Help"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullSensor"
             android:parentActivityName=".MainActivity" />
 
         <activity
             android:name=".AboutActivity"
             android:exported="false"
             android:label="About"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullSensor"
             android:parentActivityName=".MainActivity" />
 
         <!-- Foreground Service for Background Tracking -->

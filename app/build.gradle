@@ -55,8 +55,8 @@ android {
 
     compileOptions {
         // java.time (Instant, DateTimeFormatter) requires desugaring below API 26 OR minSdk 26+
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     applicationVariants.all { variant ->
