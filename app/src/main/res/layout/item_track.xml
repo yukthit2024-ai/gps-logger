@@ -38,9 +38,7 @@
                 android:text="My Trip Name"
                 android:textColor="#1A1A2E"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                android:ellipsize="middle"
-                android:singleLine="true" />
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvTrackTimestamp"
