@@ -45,7 +45,6 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         TrackItem trackItem = trackList.get(position);
         
         if (trackItem.isRecordedPoint()) {
-            holder.ivTrackIcon.setImageResource(android.R.drawable.ic_menu_mylocation);
             String displayName = trackItem.displayName != null ? trackItem.displayName : trackItem.baseName;
             if (displayName.startsWith("Recorded Point ")) {
                 displayName = displayName.substring("Recorded Point ".length());
@@ -54,7 +53,6 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
             }
             holder.tvTrackName.setText("📍 " + displayName);
         } else {
-            holder.ivTrackIcon.setImageResource(android.R.drawable.ic_menu_mapmode);
             holder.tvTrackName.setText("🏁 " + (trackItem.displayName != null ? trackItem.displayName : trackItem.baseName));
         }
         
@@ -95,7 +93,6 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
     }
 
     public static class TrackViewHolder extends RecyclerView.ViewHolder {
-        ImageView ivTrackIcon;
         TextView tvTrackName;
         TextView tvTrackTimestamp;
         TextView tvTrackFiles;
@@ -106,7 +103,6 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
 
         public TrackViewHolder(@NonNull View itemView) {
             super(itemView);
-            ivTrackIcon = itemView.findViewById(R.id.ivTrackIcon);
             tvTrackName = itemView.findViewById(R.id.tvTrackName);
             tvTrackTimestamp = itemView.findViewById(R.id.tvTrackTimestamp);
             tvTrackFiles = itemView.findViewById(R.id.tvTrackFiles);
