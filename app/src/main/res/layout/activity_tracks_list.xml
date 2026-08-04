@@ -16,6 +16,21 @@
         app:titleTextColor="@android:color/white"
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
+    <EditText
+        android:id="@+id/etSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:background="@drawable/bg_edit_text"
+        android:drawableStart="@android:drawable/ic_menu_search"
+        android:drawablePadding="8dp"
+        android:hint="Search tracks..."
+        android:padding="12dp"
+        android:textColor="#1A1A2E"
+        android:textColorHint="#888EAB"
+        android:textSize="16sp"
+        android:singleLine="true" />
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">

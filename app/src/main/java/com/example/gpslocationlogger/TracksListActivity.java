@@ -53,7 +53,9 @@ public class TracksListActivity extends AppCompatActivity implements TrackAdapte
     private RecyclerView recyclerView;
     private TextView tvEmptyState;
     private TrackAdapter adapter;
-    private List<TrackItem> trackList = new ArrayList<>();
+    private android.widget.EditText etSearch;
+    private List<TrackItem> allTrackList = new ArrayList<>();
+    private List<TrackItem> displayTrackList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,10 +71,24 @@ public class TracksListActivity extends AppCompatActivity implements TrackAdapte
 
         recyclerView = findViewById(R.id.recyclerViewTracks);
         tvEmptyState = findViewById(R.id.tvEmptyState);
+        etSearch = findViewById(R.id.etSearch);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new TrackAdapter(this, trackList, this);
+        adapter = new TrackAdapter(this, displayTrackList, this);
         recyclerView.setAdapter(adapter);
+
+        etSearch.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterTracks(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
 
         checkPermissionsAndLoadTracks();
     }
@@ -183,15 +199,33 @@ public class TracksListActivity extends AppCompatActivity implements TrackAdapte
             }
         }
 
-        trackList.clear();
-        trackList.addAll(trackMap.values());
+        allTrackList.clear();
+        allTrackList.addAll(trackMap.values());
 
         // Sort descending by timestamp (lexicographically via baseName)
-        Collections.sort(trackList, (t1, t2) -> t2.baseName.compareTo(t1.baseName));
+        Collections.sort(allTrackList, (t1, t2) -> t2.baseName.compareTo(t1.baseName));
 
+        filterTracks(etSearch.getText().toString());
+    }
+
+    private void filterTracks(String query) {
+        displayTrackList.clear();
+        if (query == null || query.trim().isEmpty()) {
+            displayTrackList.addAll(allTrackList);
+        } else {
+            String lowerCaseQuery = query.toLowerCase();
+            for (TrackItem item : allTrackList) {
+                String searchString = item.displayName != null ? item.displayName : item.baseName;
+                if (searchString != null && searchString.toLowerCase().contains(lowerCaseQuery)) {
+                    displayTrackList.add(item);
+                }
+            }
+        }
         adapter.notifyDataSetChanged();
 
-        if (trackList.isEmpty()) {
+        if (displayTrackList.isEmpty() && !allTrackList.isEmpty()) {
+            showEmptyState("No tracks match your search.");
+        } else if (displayTrackList.isEmpty()) {
             showEmptyState("No valid tracks found in folder.");
         } else {
             tvEmptyState.setVisibility(View.GONE);
