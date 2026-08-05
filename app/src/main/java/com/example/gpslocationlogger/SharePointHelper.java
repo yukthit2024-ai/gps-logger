@@ -120,7 +120,7 @@ public class SharePointHelper {
                 "📁 Share Location File(s)"
         };
 
-        AlertDialog dialog = new AlertDialog.Builder(activity)
+        AlertDialog dialog = new AlertDialog.Builder(activity, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
                 .setTitle("Recorded Point Actions")
                 .setItems(options, new DialogInterface.OnClickListener() {
                     @Override

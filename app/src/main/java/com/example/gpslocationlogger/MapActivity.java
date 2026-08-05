@@ -387,7 +387,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             checkedItems[i] = true;
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
                 .setTitle("Select formats to share")
                 .setMultiChoiceItems(items, checkedItems, (dialogInterface, which, isChecked) -> checkedItems[which] = isChecked)
                 .setPositiveButton("Share", (dialogInterface, which) -> {
@@ -465,7 +465,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     private void deleteTrack() {
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
                 .setTitle("Delete Track")
                 .setMessage("Are you sure you want to delete all files for this track?")
                 .setPositiveButton("Delete", (dialogInterface, which) -> {

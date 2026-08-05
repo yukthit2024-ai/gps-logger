@@ -386,7 +386,7 @@ public class TracksListActivity extends AppCompatActivity implements TrackAdapte
             checkedItems[i] = true;
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
                 .setTitle("Select formats to share")
                 .setMultiChoiceItems(items, checkedItems, (dialogInterface, which, isChecked) -> checkedItems[which] = isChecked)
                 .setPositiveButton("Share", (dialogInterface, which) -> {
@@ -474,7 +474,7 @@ public class TracksListActivity extends AppCompatActivity implements TrackAdapte
     @Override
     public void onDeleteClick(TrackItem trackItem) {
         String itemType = trackItem.isRecordedPoint() ? "Recorded Point" : "Track";
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
                 .setTitle("Delete " + itemType)
                 .setMessage("Are you sure you want to delete all files for this " + itemType.toLowerCase() + "?")
                 .setPositiveButton("Delete", (dialogInterface, which) -> {
@@ -506,6 +506,7 @@ public class TracksListActivity extends AppCompatActivity implements TrackAdapte
         
         final android.widget.EditText input = new android.widget.EditText(this);
         input.setSingleLine(true);
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
         input.setText(getCleanDescriptionForEdit(trackItem));
         input.setSelection(input.getText().length());
         input.setPadding((int) (16 * getResources().getDisplayMetrics().density),
@@ -529,7 +530,7 @@ public class TracksListActivity extends AppCompatActivity implements TrackAdapte
         input.setLayoutParams(params);
         container.addView(input);
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
                 .setTitle("Rename " + itemType)
                 .setMessage("Enter new description:")
                 .setView(container)
@@ -580,9 +581,16 @@ public class TracksListActivity extends AppCompatActivity implements TrackAdapte
                     }
                 })
                 .setNegativeButton("Cancel", null)
-                .show();
+                .create();
 
-        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(Color.parseColor("#0F3460"));
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        }
+        dialog.show();
+        
+        input.requestFocus();
+
+        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(Color.parseColor("#1E88E5"));
         dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setTextColor(Color.parseColor("#888EAB"));
     }
 
