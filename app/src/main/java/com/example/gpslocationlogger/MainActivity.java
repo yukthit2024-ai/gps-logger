@@ -104,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
     private View statusBar;
     private ImageView ivPipIcon;
     private ImageView ivLockTrackingInfo;
-    private TextView tvSavePath;
     private View mainContent;
 
     // ── Service ─────────────────────────────────────────────────────────────
@@ -170,7 +169,6 @@ public class MainActivity extends AppCompatActivity {
         statusBar        = findViewById(R.id.statusBar);
         ivPipIcon        = findViewById(R.id.ivPipIcon);
         ivLockTrackingInfo = findViewById(R.id.ivLockTrackingInfo);
-        tvSavePath       = findViewById(R.id.tvSavePath);
         mainContent      = findViewById(R.id.main_content);
 
         // Initialize FusedLocationProviderClient
@@ -286,7 +284,6 @@ public class MainActivity extends AppCompatActivity {
             findViewById(R.id.btnPauseTracking).setVisibility(View.GONE);
             findViewById(R.id.btnEndTracking).setVisibility(View.GONE);
             findViewById(R.id.cardTrackingInfo).setVisibility(View.GONE);
-            findViewById(R.id.tvSavePath).setVisibility(View.GONE);
             
             // Show the PiP icon and ensure it's the smaller size
             ivPipIcon.setVisibility(View.VISIBLE);
@@ -327,7 +324,6 @@ public class MainActivity extends AppCompatActivity {
             btnEndTracking.setVisibility(View.VISIBLE);
             
             setTrackingUiState(isTracking);
-            findViewById(R.id.tvSavePath).setVisibility(lastSavedUri != null ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -501,8 +497,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (lastSavedUri != null) {
-            tvSavePath.setText("📁 Last saved: " + lastSavedName);
-            tvSavePath.setVisibility(View.VISIBLE);
             invalidateOptionsMenu();
             etTrackingInfo.setText("");
             etTrackingInfo.setEnabled(true);
@@ -824,7 +818,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (lastSavedUri != null) {
-            tvSavePath.setText("📁 Last saved: " + lastSavedName);
             invalidateOptionsMenu(); // Refresh share icon visibility
             etTrackingInfo.setText(""); // Clear for next session
             etTrackingInfo.setEnabled(true); // Re-enable for next session

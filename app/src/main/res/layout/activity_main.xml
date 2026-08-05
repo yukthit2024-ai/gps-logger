@@ -310,22 +310,6 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
-            <!-- ══════════════════════════════════════════════════════════════════════ -->
-            <!-- ⑥ Save-path info label — always visible at the bottom                 -->
-            <!-- ══════════════════════════════════════════════════════════════════════ -->
-            <TextView
-                android:id="@+id/tvSavePath"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:visibility="gone"
-                android:textSize="12sp"
-                android:textColor="#888EAB"
-                android:gravity="center"
-                android:paddingHorizontal="24dp"
-                android:paddingVertical="12dp"
-                android:layout_marginBottom="16dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
