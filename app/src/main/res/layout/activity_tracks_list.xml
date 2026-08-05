@@ -25,7 +25,7 @@
         android:drawableStart="@android:drawable/ic_menu_search"
         android:drawablePadding="8dp"
         android:hint="Search tracks..."
-        android:padding="12dp"
+        android:padding="6dp"
         android:textColor="#1A1A2E"
         android:textColorHint="#888EAB"
         android:textSize="16sp"
