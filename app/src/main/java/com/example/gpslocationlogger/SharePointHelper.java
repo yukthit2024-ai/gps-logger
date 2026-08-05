@@ -102,7 +102,7 @@ public class SharePointHelper {
     /**
      * Shows a dialog with options for a single point, or falls back to file sharing if not a single point/parsing fails.
      */
-    public static void showShareOptionsDialog(final Activity activity, final String baseName, final Runnable onShareFiles) {
+    public static void showShareOptionsDialog(final Activity activity, final String baseName, final String displayName, final Runnable onShareFiles) {
         final double[] coords = tryExtractCoordinates(baseName);
         if (coords == null) {
             // Fallback directly to file sharing
@@ -127,13 +127,22 @@ public class SharePointHelper {
                     public void onClick(DialogInterface dialogInterface, int which) {
                         if (which == 0) {
                             // Show on Google Maps
-                            String uriStr = String.format("geo:%f,%f?q=%f,%f(Recorded Point)", lat, lon, lat, lon);
+                            String cleanName = displayName;
+                            if (cleanName != null) {
+                                if (cleanName.startsWith("Recorded Point ")) {
+                                    cleanName = cleanName.substring("Recorded Point ".length());
+                                } else if (cleanName.equals("Recorded Point")) {
+                                    cleanName = "";
+                                }
+                            }
+                            String label = (cleanName != null && !cleanName.trim().isEmpty()) ? "[Recorded Point] " + cleanName : "[Recorded Point]";
+                            String uriStr = String.format(java.util.Locale.US, "geo:%f,%f?q=%f,%f(%s)", lat, lon, lat, lon, label);
                             Intent mapIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(uriStr));
                             try {
                                 activity.startActivity(mapIntent);
                             } catch (Exception e) {
                                 // Fallback to opening Google Maps in web browser
-                                String webUriStr = String.format("https://www.google.com/maps/search/?api=1&query=%f,%f", lat, lon);
+                                String webUriStr = String.format(java.util.Locale.US, "https://www.google.com/maps/search/?api=1&query=%f,%f", lat, lon);
                                 Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(webUriStr));
                                 try {
                                     activity.startActivity(webIntent);

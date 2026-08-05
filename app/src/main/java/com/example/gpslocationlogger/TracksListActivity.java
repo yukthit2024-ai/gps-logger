@@ -341,7 +341,7 @@ public class TracksListActivity extends AppCompatActivity implements TrackAdapte
     @Override
     public void onShareClick(TrackItem trackItem) {
         if (trackItem.isRecordedPoint()) {
-            SharePointHelper.showShareOptionsDialog(this, trackItem.baseName, () -> shareTrackFiles(trackItem));
+            SharePointHelper.showShareOptionsDialog(this, trackItem.baseName, trackItem.displayName, () -> shareTrackFiles(trackItem));
         } else {
             shareTrackFiles(trackItem);
         }

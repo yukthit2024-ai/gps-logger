@@ -341,7 +341,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private void shareTrack() {
         if (baseName != null && baseName.contains("_Recorded_Point")) {
-            SharePointHelper.showShareOptionsDialog(this, baseName, () -> shareTrackFiles());
+            String displayName = getIntent().getStringExtra("TRACK_DISPLAY_NAME");
+            SharePointHelper.showShareOptionsDialog(this, baseName, displayName, () -> shareTrackFiles());
         } else {
             shareTrackFiles();
         }
