@@ -180,6 +180,13 @@ public class MainActivity extends AppCompatActivity {
         btnPauseTracking.setOnClickListener(v -> onPauseTrackingClicked());
         btnEndTracking.setOnClickListener(v -> onEndTrackingClicked());
         ivLockTrackingInfo.setOnClickListener(v -> onLockTrackingInfoClicked());
+        cardTrackingInfo.setOnClickListener(v -> {
+            etTrackingInfo.requestFocus();
+            android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.showSoftInput(etTrackingInfo, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+            }
+        });
 
         // Setup Toolbar
         toolbar = findViewById(R.id.toolbar);

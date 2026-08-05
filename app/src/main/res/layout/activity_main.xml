@@ -211,7 +211,7 @@
                             android:textSize="14sp"
                             android:textColor="#1A1A2E"
                             android:background="@android:color/transparent"
-                            android:inputType="textCapSentences"
+                            android:inputType="textCapWords"
                             android:paddingVertical="4dp" />
 
                         <ImageView
